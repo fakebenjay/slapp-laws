@@ -34,6 +34,13 @@ var texturePendingSlapp = textures.lines()
   .stroke("#654f6f")
   .background("#F9C80E");
 
+var textureNonePending = textures.lines()
+  .orientation("diagonal")
+  .size(12)
+  .strokeWidth(4)
+  .stroke("#F9C80E")
+  .background("#e8171f");
+
 // var textureCompletedOngoing = textures.lines()
 //   .orientation("diagonal")
 //   .size(12)
@@ -50,6 +57,7 @@ var texturePendingSlapp = textures.lines()
 
 // svg.call(textureOngoingUpcoming);
 svg.call(texturePendingSlapp);
+svg.call(textureNonePending);
 // svg.call(textureCompletedOngoing);
 
 
@@ -124,7 +132,7 @@ function mouseout(d) {
   mapG.selectAll(`.active`)
     .style('stroke-width', 1)
 
-  mapG.selectAll('.none')
+  mapG.selectAll('.none, .pending')
     .raise()
 }
 
@@ -240,7 +248,7 @@ d3.csv("trials-data-2v26.csv")
           .append('path')
           .attr("d", path)
           .attr('class', (d) => {
-            var statusClass = !!d.properties.value.status ? ` ${d.properties.value.status.split('-').join(' ')} active` : ' none'
+            var statusClass = !!d.properties.value.status ? ` ${d.properties.value.status} active` : ' none'
             var active = !!d.properties.value.status ? ' active' : ' active'
             return `state state-${d.properties.value.state.toLowerCase().replace('washington ', '').replace(' ', '-').replaceAll('.', '')}${statusClass}${active}`
           })
@@ -250,7 +258,7 @@ d3.csv("trials-data-2v26.csv")
           //     debugger
           //   }
           // })
-          .style("stroke", d => !!d.properties.value.status === true ? '#000' : '#e8171F')
+          .style("stroke", d => !!d.properties.value.status === true && d.properties.value.status != 'pending' ? '#000' : '#e8171F')
           .style("stroke-width", 1)
           .style("opacity", d => 1)
           .style("stroke-opacity", 1)
@@ -277,7 +285,7 @@ d3.csv("trials-data-2v26.csv")
           .append('rect')
           .attr("class", (d) => {
             if (!!d.geometry && Object.keys(smallStates).includes(d.properties.value.state)) {
-              var statusClass = !!d.properties.value.status ? ` ${d.properties.value.status.split('-').join(' ')} active` : ' none'
+              var statusClass = !!d.properties.value.status ? ` ${d.properties.value.status} active` : ' none'
               var active = !!d.properties.value.status ? ' active' : ''
               return `state state-${d.properties.value.state.toLowerCase().replace('washington ', '').replace(' ', '-').replaceAll('.', '')}${statusClass}${active}`
             } else {
@@ -298,7 +306,7 @@ d3.csv("trials-data-2v26.csv")
           })
           .attr('width', labelW)
           .attr('height', labelH)
-          .style("stroke", d => !!d.properties.value && !!d.properties.value.status === true ? '#000' : '#e8171F')
+          .style("stroke", d => !!d.properties.value && !!d.properties.value.status === true && d.properties.value.status != 'pending' ? '#000' : '#e8171F')
           .style("stroke-width", d => !!d.properties.value && !!d.properties.value.status ? 1 : 1)
           .style("opacity", d => !!d.properties.value && !!d.properties.value.status ? 1 : 0.3)
           .style("stroke-opacity", d => !!d.properties.value && !!d.properties.value.status ? 1 : 1)
@@ -359,7 +367,7 @@ d3.csv("trials-data-2v26.csv")
           .on('mousemove', mousemove)
           .on("mouseout", mouseout);
 
-        mapG.selectAll('.none')
+        mapG.selectAll('.none, .pending')
           .raise()
       });
 
@@ -367,15 +375,24 @@ d3.csv("trials-data-2v26.csv")
       .on('mouseover touchstart', () => {
         d3.selectAll('.state.active')
           .style('opacity', .1)
-
-        d3.selectAll(`.state.${event.target.className}`)
+        var targetClass = event.target.className === 'slapp' || event.target.className === 'pending' ? `.state.${event.target.className}, .state.pending-slapp` : '.state.' + event.target.className
+        d3.selectAll(targetClass)
           .style('opacity', 1)
 
         if (event.target.className === 'none') {
-          d3.selectAll(`.state.${event.target.className}`)
-            .style('fill', '#e8171f')
+          d3.selectAll(`path.state.none, path.state.pending, rect.state.none, rect.state.pending`)
             .style('stroke', 'black')
+            .style('opacity', 1)
 
+          d3.selectAll(`path.state.none, rect.state.none`)
+            .style('fill', '#e8171f')
+
+          d3.selectAll(`path.state.pending, rect.state.pending`)
+            .style('fill', textureNonePending.url())
+
+          d3.selectAll(`text.state.none, text.state.pending`)
+            .style('opacity', 1)
+            .style('fill', 'black')
 
           d3.select('.legend .none div')
             .style('background-color', '#e8171f')
@@ -386,16 +403,23 @@ d3.csv("trials-data-2v26.csv")
         d3.selectAll('.state.active')
           .style('opacity', 1)
 
-        d3.selectAll(`.state.none`)
-          .style('fill', 'none')
+        d3.selectAll(`path.state.none, rect.state.none`)
+          .style('fill', '#F4F4F4')
+          .style('stroke', '#e8171f')
+
+        d3.selectAll(`path.state.pending, rect.state.pending`)
+          .style('fill', '#F9C80E')
           .style('stroke', '#e8171f')
 
         d3.select('.legend .none div')
           .style('background-color', 'transparent')
           .style('border', '1px solid #e8171f')
 
+        d3.selectAll(`text.state.none, text.state.pending`)
+          .style('opacity', 1)
+          .style('fill', 'black')
 
-        mapG.selectAll('.none')
+        mapG.selectAll('.none, .pending')
           .raise()
       })
   });
